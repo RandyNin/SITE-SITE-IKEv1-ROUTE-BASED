@@ -1,0 +1,153 @@
+### CLARO-ISP ###
+
+ena
+conf t
+no ip domain-lookup
+hostname CLARO-ISP
+
+int gig0/0
+ip add dhcp
+no shut
+exit
+
+int gig0/1
+ip add 20.21.22.2 255.255.255.252
+no shut
+exit
+
+int gig0/2
+ip add 30.31.32.2 255.255.255.252
+no shut
+exit
+
+access-list 1 permit 20.21.22.0 0.0.0.3
+access-list 1 permit 30.31.32.0 0.0.0.3
+
+int ra gig0/1
+ip nat inside
+exit
+
+int ra gig0/2
+ip nat inside
+exit
+
+int gig0/0
+ip nat outside
+exit
+
+ip nat inside source list 1 interface gig0/0 overload
+
+do wr
+
+### R-SITE-A ###
+
+ena
+conf t
+no ip domain-lookup
+hostname R-SITE-A
+
+int gig0/1
+ip add 20.21.22.1 255.255.255.252
+no shut
+exit
+
+int gig0/0
+ip add 192.168.10.1 255.255.255.0
+no shut
+exit
+
+ip route 0.0.0.0 0.0.0.0 20.21.22.2
+
+ip dhcp excluded-address 192.168.10.1 192.168.10.9
+ip dhcp pool SITE-A
+network 192.168.10.0 255.255.255.0
+default-router 192.168.10.1
+dns-server 8.8.8.8
+exit
+
+crypto isakmp policy 10
+encryption aes 256
+hash sha256
+authentication pre-share
+group 14
+lifetime 86400
+
+crypto isakmp key randy123 address 30.31.32.1
+
+crypto ipsec transform-set TRANF_SET esp-aes 256 esp-sha256-hmac
+mode tunnel
+exit
+
+crypto ipsec profile IPSEC_SITEA_VTI
+set transform-set TRANF_SET
+set pfs group14
+exit
+
+int tunnel0
+ip address 172.16.0.1 255.255.255.252
+tunnel source gig0/1
+tunnel destination 30.31.32.1
+tunnel mode ipsec ipv4
+tunnel protection ipsec profile IPSEC_SITEA_VTI
+exit
+
+ip route 192.168.20.0 255.255.255.0 tunnel0
+
+do wr
+
+### R-SITE-B ###
+
+ena
+conf t
+no ip domain-lookup
+hostname R-SITE-B
+
+int gig0/2
+ip add 30.31.32.1 255.255.255.252
+no shut
+exit
+
+int gig0/0
+ip add 192.168.20.1 255.255.255.0
+no shut
+exit
+
+ip route 0.0.0.0 0.0.0.0 30.31.32.2
+
+ip dhcp excluded-address 192.168.20.1 192.168.20.9
+ip dhcp pool SITE-B
+network 192.168.20.0 255.255.255.0
+default-router 192.168.20.1
+dns-server 8.8.8.8
+exit
+
+crypto isakmp policy 10
+encryption aes 256
+hash sha256
+authentication pre-share
+group 14
+lifetime 86400
+exit
+
+crypto isakmp key randy123 address 20.21.22.1
+
+crypto ipsec transform-set TRANF_SET esp-aes 256 esp-sha256-hmac
+mode tunnel
+exit
+
+crypto ipsec profile IPSEC_SITEB_VTI
+set transform-set TRANF_SET
+set pfs group14
+exit
+
+int tunnel0
+ip address 172.16.0.2 255.255.255.252
+tunnel source gig0/2
+tunnel destination 20.21.22.1
+tunnel mode ipsec ipv4
+tunnel protection ipsec profile IPSEC_SITEB_VTI
+exit
+
+ip route 192.168.10.0 255.255.255.0 tunnel0
+
+do wr
