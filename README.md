@@ -208,4 +208,3 @@ _Randy Nin / Matrícula 2025-0660_
 
 ---
 
-Listo. 10 capturas mapeadas, configuración extraída del archivo `route-based`, y la sección comparativa Policy-Based vs Route-Based integrada en el informe. Cuando tengas el siguiente lab (GRE over IPSec, IKEv2, DMVPN, L2TP o el que siga) mándame la info.
